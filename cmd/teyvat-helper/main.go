@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Jx2f/teyvat-helper/pkg/config"
-	"github.com/Jx2f/teyvat-helper/pkg/core"
+	"github.com/teyvat-helper/teyvat-helper/pkg/config"
+	"github.com/teyvat-helper/teyvat-helper/pkg/core"
 )
 
 func main() {
