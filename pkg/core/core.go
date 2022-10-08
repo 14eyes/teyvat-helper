@@ -3,10 +3,10 @@ package core
 import (
 	"os"
 
-	"github.com/Jx2f/teyvat-helper/pkg/config"
-	"github.com/Jx2f/teyvat-helper/pkg/kcp"
 	"github.com/google/gopacket/pcap"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/teyvat-helper/teyvat-helper/pkg/config"
+	"github.com/teyvat-helper/teyvat-helper/pkg/kcp"
 )
 
 type Service struct {

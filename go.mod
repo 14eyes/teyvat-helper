@@ -1,4 +1,4 @@
-module github.com/Jx2f/teyvat-helper
+module github.com/teyvat-helper/teyvat-helper
 
 go 1.19
 

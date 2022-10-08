@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Jx2f/teyvat-helper/pkg/kcp"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -20,6 +19,7 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/teyvat-helper/teyvat-helper/pkg/kcp"
 )
 
 func (s *Service) initSniffer() (err error) {
