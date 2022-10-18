@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -107,12 +109,72 @@ func (s *Service) runSniffer() {
 }
 
 type KeyStore struct {
-	mu sync.Mutex
-	wg sync.WaitGroup
-	kv map[uint8][]byte
+	mu   sync.Mutex
+	wg   sync.WaitGroup
+	once sync.Once
+	kv   map[uint8][]byte
 }
 
-func (s *Service) keyStoreXor(data []byte) {
+func (s *Service) keyStoreBin(data []byte) []byte {
+	if (data[0]^0x45 == 0x61 && data[1]^0x67 == 0xE8) || (data[0]^0x45 == 0x4A && data[1]^0x67 == 0x8D) {
+		log.Printf("[SNIFFER] Got [%02X %02X %02X %02X %02X %02X %02X %02X ...] len:%d", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], len(data))
+		log.Println("[SNIFFER] KeyStore is empty, skipping...")
+		return nil
+	}
+	s.keyStore.once.Do(func() {
+		s.keyStore.wg.Add(1)
+		log.Println("[SNIFFER] KeyStore waiting")
+	})
+	if len(data) != 58129 {
+		s.keyStore.wg.Wait()
+	} else {
+		log.Println("[SNIFFER] KeyStore is empty, decrypting...")
+	}
+	s.keyStore.mu.Lock()
+	key, ok := s.keyStore.kv[data[0]]
+	if !ok {
+		log.Printf("[SNIFFER] Finding [%02X %02X ?? ?? %02X ?? %02X %02X ...]", data[0]^0x45, data[1]^0x67, data[4], data[6], data[7])
+		s.memory.Seek(0, 0)
+		code, _ := io.ReadAll(s.memory)
+		chunk := make([]byte, 4096*2)
+		for i := 0; i < 4096; i++ {
+			copy(chunk, code[i:])
+			for j := 0; j < 4096*2; j++ {
+				chunk[j] = chunk[j] ^ data[4096+j]
+			}
+			if !bytes.Equal(chunk[:4096], chunk[4096:]) {
+				continue
+			}
+			if chunk[0] == data[0]^0x45 && chunk[1] == data[1]^0x67 &&
+				chunk[4] == data[4] && chunk[6] == data[6] && chunk[7] == data[7] {
+				key = make([]byte, 4096)
+				copy(key, chunk)
+				s.keyStore.kv[data[0]] = key
+				log.Printf("[SNIFFER] Matched [%02X %02X %02X %02X %02X %02X %02X %02X ...] at %d",
+					key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7], int64(i))
+				fmt.Fprintf(s.rawlog, `********************************************************************************
+********************************************************************************
+* Pattern [%02X %02X ?? ?? %02X ?? %02X %02X ...]
+********************************************************************************
+* Key Dump
+%s
+********************************************************************************
+
+`, data[0]^0x45, data[1]^0x67, data[4], data[6], data[7], base64.StdEncoding.EncodeToString(key))
+				s.keyStore.wg.Done()
+				break
+			}
+		}
+	}
+	s.keyStore.mu.Unlock()
+	if key == nil {
+		log.Println("[SNIFFER] Failed to find key in memory")
+		return nil
+	}
+	return key
+}
+
+func (s *Service) keyStoreMem(data []byte) []byte {
 	s.keyStore.mu.Lock()
 	s.keyStore.wg.Wait()
 	key, ok := s.keyStore.kv[data[0]]
@@ -153,10 +215,17 @@ func (s *Service) keyStoreXor(data []byte) {
 		s.keyStore.wg.Done()
 	}
 	s.keyStore.mu.Unlock()
+	if key == nil {
+		log.Println("[SNIFFER] Failed to find key in memory")
+		return nil
+	}
+	return key
+}
+
+func (s *Service) keyStoreXor(data []byte) {
+	key := s.keyStoreBin(data)
 	if key != nil {
 		xor(data, key)
-	} else {
-		log.Println("[SNIFFER] Failed to find key in memory")
 	}
 }
 
@@ -256,4 +325,5 @@ func (s *Service) handlePacket(packet *Packet) {
 		bodyJson, _ = json.Marshal(notify)
 	}
 	fmt.Fprintf(s.rawlog, "%s [SNIFFER] %s %5d - %5d:%s\n%s\n%s\n", packet.time.Format("2006-01-02 15:04:05.000000"), prefix, clientSequenceId, cmdId, cmd, headJson, bodyJson)
+	s.HandleMessage(cmd, bodyPb)
 }

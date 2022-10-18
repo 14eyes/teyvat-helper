@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achievement - Teyvat Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+    <div class="overflow-x-auto relative">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="py-4 px-6">id</th>
+                    <th scope="col" class="py-4 px-6">progress</th>
+                    <th scope="col" class="py-4 px-6">status / finish timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+    </div>
+    <script>
+        var achievementMap = {}
+        const updateAchievementMap = async () => {
+            const response = await fetch('/api/achievement', { method: 'GET' });
+            const items = await response.json();
+            items.forEach(achievement => {
+                var classname = 'bg-white'
+                var curProgress = achievement.data.curProgress
+                var finishTimestamp = achievement.data.finishTimestamp
+                if (achievement.data.status === "STATUS_UNFINISHED") {
+                    classname = 'bg-yellow-50'
+                } else if (curProgress === undefined) {
+                    curProgress = achievement.data.totalProgress
+                }
+                var p = '<tr class="' + classname + ' border-b dark:bg-gray-800 dark:border-gray-700">'
+                p += '<td class="py-3 px-6">' + achievement.id + '</td>'
+                p += '<td class="py-3 px-6">' + (curProgress ? curProgress : '0') + " / " + achievement.data.totalProgress + '</td>'
+                p += '<td class="py-3 px-6">' + achievement.data.status + (finishTimestamp ? ' (' + finishTimestamp + ')' : '') + '</td>'
+                p += '</tr>';
+                document.getElementById("tbody").insertAdjacentHTML("beforeend", p);
+            });
+        }
+        updateAchievementMap()
+    </script>
+</body>
+
+</html>

@@ -1,7 +1,9 @@
 package core
 
 import (
+	"image"
 	"os"
+	"sync"
 
 	"github.com/google/gopacket/pcap"
 	"github.com/jhump/protoreflect/desc"
@@ -22,6 +24,15 @@ type Service struct {
 
 	serverInst *kcp.KCP
 	clientInst *kcp.KCP
+
+	// map
+	mutex          sync.RWMutex
+	teyvatMap      map[uint32][][]image.Image
+	achievementMap map[uint32]*Achievement
+	avatarMap      map[uint32]*Avatar
+	entityMap      map[uint32]*Entity
+	playerMap      map[uint32]*Player
+	itemMap        map[uint32]*Item
 }
 
 func NewService(c *config.Config) (*Service, error) {
@@ -34,6 +45,5 @@ func NewService(c *config.Config) (*Service, error) {
 
 func (s *Service) Start() error {
 	go s.runSniffer()
-	select {}
-	return nil
+	return s.start()
 }

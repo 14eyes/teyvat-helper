@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/jhump/protoreflect v1.13.0
+	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69
 )
 
 require (

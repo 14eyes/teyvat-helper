@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory - Teyvat Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+    <div class="overflow-x-auto relative">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="py-4 px-6">id</th>
+                    <th scope="col" class="py-4 px-6">item id</th>
+                    <th scope="col" class="py-4 px-6">type</th>
+                    <th scope="col" class="py-4 px-6">count / is locked</th>
+                    <th scope="col" class="py-4 px-6">detail</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+    </div>
+    <script>
+        var itemMap = {}
+        const updateItemMap = async () => {
+            const response = await fetch('/api/item', { method: 'GET' });
+            const items = await response.json();
+            items.forEach(item => {
+                var type = undefined
+                var count = 0
+                var isLocked = undefined
+                var detail = undefined
+                if (item.data.material) {
+                    type = 'material'
+                    count = item.data.material.count
+                } else if (item.data.furniture) {
+                    type = 'furniture'
+                    count = item.data.furniture.count
+                } else if (item.data.equip) {
+                    if (item.data.equip.weapon) {
+                        type = 'equip.weapon'
+                        detail = item.data.equip.weapon
+                    } else if (item.data.equip.reliquary) {
+                        type = 'equip.reliquary'
+                        detail = item.data.equip.reliquary
+                    }
+                    isLocked = item.data.equip.isLocked ? 'True' : 'False'
+                } else {
+                    console.log(item.data)
+                }
+                var p = '<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">'
+                p += '<td class="py-3 px-6">' + item.id + '</td>'
+                p += '<td class="py-3 px-6">' + item.data.itemId + '</td>'
+                p += '<td class="py-3 px-6">' + type + '</td>'
+                p += '<td class="py-3 px-6">' + (count ? count : '') + (isLocked ? isLocked : '') + '</td>'
+                p += '<td class="py-3 px-6 whitespace-pre">' + (detail ? JSON.stringify(detail, null, 4) : '') + '</td>'
+                p += '</tr>';
+                document.getElementById("tbody").insertAdjacentHTML("beforeend", p);
+            });
+        }
+        updateItemMap()
+    </script>
+</body>
+
+</html>
